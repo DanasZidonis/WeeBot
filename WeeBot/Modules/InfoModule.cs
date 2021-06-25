@@ -2,9 +2,11 @@
 using Discord.Commands;
 using Discord.WebSocket;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace WeeBot.Modules
@@ -48,15 +50,55 @@ namespace WeeBot.Modules
 		}
 
 		[Command("image")]
-		public async Task Image(string echo)
+		public async Task Image()
 		{
+
+			string chars = "01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghiklmnopqrstuvwxyz";
+			var stringlength = 7; /* could be 6 or 7, but takes forever because there are lots of dead images */
+			var text = "";
+			for (var i = 0; i < stringlength; i++)
+			{
+				Random r = new Random();
+				int rnum = r.Next(chars.Length);
+				text += chars.Substring(rnum, 1);
+			}
+
+				var source = "https://imgur.com/gallery/" + text;
+
+				var builder = new EmbedBuilder()
+					.WithImageUrl(source.ToString())
+					.WithColor(new Color(33, 176, 252))
+					.WithTitle("test")
+					.WithUrl(source.ToString())
+					.WithFooter(source);
+				var embed = builder.Build();
+				await Context.Channel.SendMessageAsync(null, false, embed);
+		}
+
+		[Command("meme")]
+		[Alias("reddit")]
+		public async Task Meme(string subreddit = null)
+        {
+			var client = new HttpClient();
+			var result = await client.GetStringAsync($"https://reddit.com/r/{subreddit ?? "memes"}/random.json?limit=1");
+            if (!result.StartsWith("["))
+            {
+				await Context.Channel.SendMessageAsync("This subreddit doesn't exist");
+				return;
+            }
+			JArray arr = JArray.Parse(result);
+			JObject post = JObject.Parse(arr[0]["data"]["children"][0]["data"].ToString());
+
 			var builder = new EmbedBuilder()
-				.WithThumbnailUrl(echo)
-				.WithDescription("Some user info.")
+				.WithImageUrl(post["url"].ToString())
 				.WithColor(new Color(33, 176, 252))
-				.WithCurrentTimestamp();
-			var embed = builder.Build();
+				.WithTitle(post["title"].ToString())
+				.WithUrl("https://reddit.com" + post["permalink"].ToString())
+				.WithFooter($"🗨 {post["num_comments"]} ⬆️ {post["ups"]}");
+				var embed = builder.Build();
 			await Context.Channel.SendMessageAsync(null, false, embed);
+
+
 		}
 	}
 

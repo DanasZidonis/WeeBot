@@ -38,7 +38,7 @@ namespace WeeBot
 
 			//  You can assign your bot token to a string, and pass that in to connect.
 			//  This is, however, insecure, particularly if you plan to have your code hosted in a public repository.
-			var token = "ODU0NjgwMTkwMjk0MDMyMzk0.YMnc9A.Y5PFiNN_v8-T0qLsMH4ZhqaHA88";
+			var token = "ODU0NjgwMTkwMjk0MDMyMzk0.YMnc9A.N9HLZUC-LCnYKsrsKo_XY2QYDo8";
 
 			// Some alternative options would be to keep your token in an Environment Variable or a standalone file.
 			// var token = Environment.GetEnvironmentVariable("NameOfYourEnvironmentVariable");
