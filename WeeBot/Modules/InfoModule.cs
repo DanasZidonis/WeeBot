@@ -1,13 +1,20 @@
 ﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
 using System.Threading.Tasks;
+using QuickType;
 
 namespace WeeBot.Modules
 {
@@ -25,8 +32,9 @@ namespace WeeBot.Modules
 
 	public class Commands : ModuleBase<SocketCommandContext>
 	{
-		// ~say hello world -> hello world
-		[Command("ping")]
+
+        // ~say hello world -> hello world
+        [Command("ping")]
 		public async Task Ping()
 		{
 			await ReplyAsync("pong");
@@ -55,24 +63,61 @@ namespace WeeBot.Modules
 
 			string chars = "01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghiklmnopqrstuvwxyz";
 			var stringlength = 7; /* could be 6 or 7, but takes forever because there are lots of dead images */
-			var text = "";
-			for (var i = 0; i < stringlength; i++)
-			{
-				Random r = new Random();
-				int rnum = r.Next(chars.Length);
-				text += chars.Substring(rnum, 1);
-			}
+				var text = "";
+				for (var i = 0; i < stringlength; i++)
+				{
+					Random r = new Random();
+					int rnum = r.Next(chars.Length);
+					text += chars.Substring(rnum, 1);
+				}
 
-				var source = "https://imgur.com/gallery/" + text;
+				var source = "https://i.imgur.com/" + text + ".jpg";
+
+				var client = new HttpClient();
+				HttpResponseMessage result = await client.GetAsync(source);
+
+			string responseUri = result.RequestMessage.RequestUri.ToString();
+
+			if (responseUri == "https://i.imgur.com/removed.png")
+			{
+				Image();
+			}
+			else
+			{
 
 				var builder = new EmbedBuilder()
-					.WithImageUrl(source.ToString())
-					.WithColor(new Color(33, 176, 252))
-					.WithTitle("test")
-					.WithUrl(source.ToString())
-					.WithFooter(source);
+						.WithImageUrl(source.ToString())
+						.WithColor(new Color(33, 176, 252))
+						.WithTitle("test")
+						.WithUrl(source.ToString())
+						.WithFooter(source);
 				var embed = builder.Build();
 				await Context.Channel.SendMessageAsync(null, false, embed);
+			}
+		}
+
+		[Command("imgurAPI")]
+		public async Task ImgurApi()
+        {
+
+			var client = new HttpClient();
+			var request = new HttpRequestMessage(HttpMethod.Get, "https://api.imgur.com/3/gallery/random/random");
+
+			var byteArray = new UTF8Encoding().GetBytes("5080de90f5f4854");
+			client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Client-ID", "5080de90f5f4854");
+
+			Console.WriteLine(client.DefaultRequestHeaders);
+
+			var response = await client.SendAsync(request);
+
+			Console.WriteLine(await response.Content.ReadAsStringAsync());
+
+			var responseJson = await response.Content.ReadAsAsync<JsonInfo>();
+
+				Console.WriteLine("----------------------------------------------------------");
+				Console.WriteLine(responseJson.Title);
+				Console.WriteLine("----------------------------------------------------------");
+
 		}
 
 		[Command("meme")]
