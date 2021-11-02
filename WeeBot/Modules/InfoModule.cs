@@ -1,6 +1,8 @@
-﻿using Discord;
+﻿using Microsoft.Office.Interop.Excel;
+using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using HtmlAgilityPack;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
@@ -14,7 +16,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
-using QuickType;
+using WeeBot.Models;
 
 namespace WeeBot.Modules
 {
@@ -62,7 +64,7 @@ namespace WeeBot.Modules
 		{
 
 			string chars = "01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghiklmnopqrstuvwxyz";
-			var stringlength = 7; /* could be 6 or 7, but takes forever because there are lots of dead images */
+			var stringlength = 5;
 				var text = "";
 				for (var i = 0; i < stringlength; i++)
 				{
@@ -80,7 +82,7 @@ namespace WeeBot.Modules
 
 			if (responseUri == "https://i.imgur.com/removed.png")
 			{
-				Image();
+				await Image();
 			}
 			else
 			{
@@ -96,8 +98,8 @@ namespace WeeBot.Modules
 			}
 		}
 
-		[Command("imgurAPI")]
-		public async Task ImgurApi()
+		[Command("imgurSpam")]
+		public async Task ImgurSpam(int amount = 0)
         {
 
 			var client = new HttpClient();
@@ -106,17 +108,25 @@ namespace WeeBot.Modules
 			var byteArray = new UTF8Encoding().GetBytes("5080de90f5f4854");
 			client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Client-ID", "5080de90f5f4854");
 
-			Console.WriteLine(client.DefaultRequestHeaders);
-
 			var response = await client.SendAsync(request);
-
-			Console.WriteLine(await response.Content.ReadAsStringAsync());
 
 			var responseJson = await response.Content.ReadAsAsync<JsonInfo>();
 
-				Console.WriteLine("----------------------------------------------------------");
-				Console.WriteLine(responseJson.Title);
-				Console.WriteLine("----------------------------------------------------------");
+			if(amount == 0)
+            {
+				amount = responseJson.Test.Count();
+            }
+
+			foreach (var obj in responseJson.Test.Take(amount))
+			{
+				var builder = new EmbedBuilder()
+						.WithImageUrl(obj.Link)
+						.WithColor(new Color(33, 176, 252))
+						.WithTitle("test")
+						.WithUrl(obj.Link);
+				var embed = builder.Build();
+				await Context.Channel.SendMessageAsync(null, false, embed);
+			}
 
 		}
 
@@ -145,7 +155,111 @@ namespace WeeBot.Modules
 
 
 		}
-	}
+
+		[Command("companies")]
+		public async Task Companies() {
+			Application myApp;
+			Workbook myWorkBook;
+			Worksheet myWorkSheet;
+			myApp = new Application();
+			myWorkBook = myApp.Workbooks.Add();
+			myWorkSheet = (Worksheet)myWorkBook.Worksheets.get_Item(1);
+
+			var client = new HttpClient();
+				var result = await client.GetStringAsync("https://www.ft.com/americas-fastest-growing-companies-2021");
+
+				var htmlDocument = new HtmlDocument();
+				htmlDocument.LoadHtml(result);
+
+				var tableList = htmlDocument.DocumentNode.Descendants("table")
+					.Where(node => node.GetAttributeValue("class", "")
+					.Equals("o-table o-table--row-stripes o-table--compact o-table--responsive-overflow")).ToList();
+
+				var companyList = tableList[0].Descendants("tr").ToList();
+
+			var rw = 1;
+
+				foreach (HtmlNode row in companyList)
+				{
+				var cl = 1;
+
+				foreach (HtmlNode cell in row.SelectNodes("th|td"))
+                {
+					myWorkSheet.Cells[rw, cl] = cell.InnerText;
+					cl++;
+				}
+
+				if(rw == 1)
+                {
+					myWorkSheet.Cells[rw, cl + 1] = "Stock price";
+                }
+
+					var cellList = row.SelectNodes("th|td");
+					HtmlNode cell1 = htmlDocument.CreateElement("div");
+					HtmlNode cell2 = htmlDocument.CreateElement("div");
+				try
+				{
+					cell1 = cellList[2];
+					cell2 = cellList[11];
+				}
+				catch(Exception e)
+                {
+
+                }
+					if (cell2.InnerText == "Yes")
+					{
+						try
+						{
+							client.DefaultRequestHeaders.TryAddWithoutValidation("Accept", "text/html, application/xhtml+xml, application/xml; q=0.9, */*; q=0.8");
+							client.DefaultRequestHeaders.TryAddWithoutValidation("Accept-Encoding", "peerdist");
+							client.DefaultRequestHeaders.TryAddWithoutValidation("Accept-Language", "en-US");
+							client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:93.0) Gecko/20100101 Firefox/93.0");
+							var result2 = await client.GetStringAsync("https://markets.businessinsider.com/searchresults?_search=" + cell1.InnerText);
+
+							var htmlDocument2 = new HtmlDocument();
+							htmlDocument2.LoadHtml(result2);
+
+							var div = htmlDocument2.DocumentNode.Descendants("div")
+							.Where(node => node.GetAttributeValue("class", "")
+							.Equals("price-section__values")).ToList();
+
+							var price = div[0].SelectNodes("span");
+
+							Console.WriteLine($"Price: {div[0].InnerText}");
+
+							cl++;
+							myWorkSheet.Cells[rw, cl] = div[0].InnerText;
+						}
+						catch (Exception e)
+						{
+
+						}
+
+					}
+				rw++;
+				}
+				myWorkSheet.SaveAs("C:/Users/Gilgamesh/Desktop/Company.xlsx");
+				myWorkBook.Close();
+				myApp.Quit();
+		}
+
+		//[Command("join", RunMode = RunMode.Async)]
+		//public async Task JoinChannel(IVoiceChannel channel = null)
+		//{
+		//	channel = channel ?? (Context.User as IGuildUser)?.VoiceChannel;
+		//	if (channel == null) { await Context.Channel.SendMessageAsync("User must be in a voice channel, or a voice channel must be passed as an argument."); return; }
+
+		//	try
+		//	{
+		//		var audioClient = await channel.ConnectAsync();
+  //          }
+		//	catch (Exception exception)
+		//        {
+		//            await ReplyAsync(exception.Message);
+		//        }
+		//	}
+
+		}
 
 	// Create a module with the 'sample' prefix
 	[Group("sample")]

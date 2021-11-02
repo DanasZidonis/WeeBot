@@ -11,6 +11,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using Victoria;
+using Victoria.EventArgs;
+using WeeBot.Modules;
+using WeeBot.Services;
 
 namespace WeeBot
 {
@@ -20,6 +24,9 @@ namespace WeeBot
 		private DiscordSocketClient _client;
 		private CommandService _commands;
 		private IServiceProvider _services;
+		private LavaNode _lavaNode;
+		private AudioService _audioService;
+		private AudioModule _soundModule;
 		public static void Main(string[] args)
 			=> new Program().MainAsync().GetAwaiter().GetResult();
 
@@ -30,15 +37,27 @@ namespace WeeBot
 			_commands = new CommandService();
 
 			_services = new ServiceCollection()
+				.AddSingleton<AudioService>()
 				.AddSingleton(_client)
 				.AddSingleton(_commands)
+				.AddSingleton<AudioModule>()
+				.AddLavaNode(x =>
+				{
+					x.SelfDeaf = false;
+					x.Authorization = "WeeBotLink2333";
+				})
 				.BuildServiceProvider();
 
 			_client.Log += Log;
+			_client.Ready += OnReadyAsync;
+			_lavaNode = _services.GetRequiredService<LavaNode>();
+			_audioService = _services.GetRequiredService<AudioService>();
+			_soundModule = _services.GetRequiredService<AudioModule>();
+			_lavaNode.OnTrackEnded += _soundModule.OnTrackEnded;
 
 			//  You can assign your bot token to a string, and pass that in to connect.
 			//  This is, however, insecure, particularly if you plan to have your code hosted in a public repository.
-			var token = "ODU0NjgwMTkwMjk0MDMyMzk0.YMnc9A.blqFvFp3VY_UFWlO7_kwSiUllGM";
+			var token = "ODU0NjgwMTkwMjk0MDMyMzk0.YMnc9A.XqzoUZG5Fm912j2Rj8uKeKfyhV4";
 
 			// Some alternative options would be to keep your token in an Environment Variable or a standalone file.
 			// var token = Environment.GetEnvironmentVariable("NameOfYourEnvironmentVariable");
@@ -51,13 +70,22 @@ namespace WeeBot
 			await _client.StartAsync();
 
 			// Block this task until the program is closed.
-			await Task.Delay(-1);
+				await Task.Delay(-1);
 		}
 
 		private Task Log(LogMessage msg)
 		{
 			Console.WriteLine(msg.ToString());
 			return Task.CompletedTask;
+		}
+
+		private async Task OnReadyAsync()
+		{
+			if (!_lavaNode.IsConnected)
+			{
+				await _lavaNode.ConnectAsync();
+			}
+
 		}
 
 		public async Task RegisterCommandsAsync()
