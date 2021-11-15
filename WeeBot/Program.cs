@@ -8,8 +8,10 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Threading.Tasks;
 using Victoria;
 using Victoria.EventArgs;
@@ -57,7 +59,11 @@ namespace WeeBot
 
 			//  You can assign your bot token to a string, and pass that in to connect.
 			//  This is, however, insecure, particularly if you plan to have your code hosted in a public repository.
-			var token = "ODU0NjgwMTkwMjk0MDMyMzk0.YMnc9A.XqzoUZG5Fm912j2Rj8uKeKfyhV4";
+			var token = string.Empty;
+
+			using (var fs = File.OpenRead("TokenFile.txt"))
+			using (var sr = new StreamReader(fs, new UTF8Encoding(false)))
+				token = await sr.ReadToEndAsync().ConfigureAwait(false);
 
 			// Some alternative options would be to keep your token in an Environment Variable or a standalone file.
 			// var token = Environment.GetEnvironmentVariable("NameOfYourEnvironmentVariable");
