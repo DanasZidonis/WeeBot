@@ -53,17 +53,24 @@ namespace WeeBot.Modules
         [Command("Play")]
         public async Task PlayAsync([Remainder] string searchQuery)
         {
-            if (string.IsNullOrWhiteSpace(searchQuery))
-            {
-                await ReplyAsync("Please provide search terms.");
-                return;
-            }
+            var voiceState = Context.User as IVoiceState;
 
             if (!_lavaNode.HasPlayer(Context.Guild))
             {
-                await ReplyAsync("I'm not connected to a voice channel.");
-                return;
+                await _lavaNode.JoinAsync(voiceState.VoiceChannel, Context.Channel as ITextChannel);
             }
+
+                if (string.IsNullOrWhiteSpace(searchQuery))
+                {
+                    await ReplyAsync("Please provide search terms.");
+                    return;
+                }
+
+                if (!_lavaNode.HasPlayer(Context.Guild))
+                {
+                    await ReplyAsync("I'm not connected to a voice channel.");
+                    return;
+                }
 
                 var searchResponse = await _lavaNode.SearchAsync(Victoria.Responses.Search.SearchType.YouTube, searchQuery);
                 //if (searchResponse.SearchStatus == "LoadFailed" ||
